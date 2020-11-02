@@ -37,31 +37,56 @@ class Cashflow {
         this.flows.push(flow);
     }
     
-    discountAmount(amount,rate,periods){
+    print(){
+        const table = [];
+        for (let f of this.flows){
+            //console.log(` ${f.date.toLocaleDateString()} ${f.amount} ${f.description}`);
+            table.push([f.date.toLocaleDateString(), f.amount, f.description]);
+        }
+            console.table(table);
+    }
+    
+} 
+
+class Finance{
+
+    static discountAmount(amount,rate,periods){
         let dr = rate / 100;
         let discountFactor = 1 / (Math.pow(1 + dr, periods));
         let pvf = amount * discountFactor;
         return pvf;
     }
-  
 
-    //TODO: cambiar por metodo que calcule el PV de un flow i a una fecha X
-    //TODO: luego se puede utilizar para calcular el NPV 
-    // Calculates present value of current flows
+    // Calculates present value of flows in the cashflow on a key date
     // Discount rate should be expressed yearly
-    PV(rate) {
-        if (typeof rate === "undefined" || isNaN(rate) || rate === null)
-            throw new Error ("No discount rate specified");
+    // Key date should be before all flow dates
+    // TODO: esta funcion solo debería descontar un flujo?
+    static PV(cashflow, rate, keyDate) {
 
-        this.validateFlows();
+        if ( typeof rate === "undefined" || isNaN(rate) || rate === null)
+            throw new Error ("No discount rate specified");
         
-        // Present date assumed to be the first flow date
-        let presentDate = this.flows[0].date;
+        if ( typeof keyDate === "undefined" || keyDate === null)
+            throw new Error ("No key date specified");
+        
+        if ( typeof cashflow === "undefined" || cashflow === null)
+            throw new Error ("No flows specified");
+
+        // Validate if any flow exists
+        if ( cashflow.length === 0) 
+            throw new Error("No flows in Cashflow");
+
+        // Validate if keyDate is before flows dates
+        if ( cashflow.flows.some( f => { return (f.date < keyDate) }) )
+            throw new Error("Key date should be before all flow dates.");
+
+        // Present date 
+        let presentDate = keyDate;
          
         // Present Value calculated as aggregation of discounted flows
         // until present date using passed discount rate
         // assuming it represents the investment payment at present date
-        let flows = this.flows.slice(1, this.flows.length);
+        let flows = cashflow.flows;
 
         let pv = flows.reduce( (acum, f) => {
                     let periods = daysBetween(presentDate, f.date) / 365;
@@ -72,14 +97,21 @@ class Cashflow {
         return pv;
     }
 
-    // Calculates net present value of current flows
+    // Calculates net present value for a cashflow
+    // Present date is assumed to be the date of firs flow
     // Discount rate should be expressed yearly
-    NPV(rate){
+    static NPV(cashflow, rate){
         if (typeof rate === "undefined" || isNaN(rate) || rate === null)
             throw new Error ("No discount rate specified");
-        if (this.flows.length === 0)
-            throw new Error ("There are no flows in the cashflow");
-        return this.flows[0].amount + this.PV(rate);
+        if ( typeof cashflow === "undefined" || cashflow === null)
+            throw new Error ("No flows specified");
+        if (cashflow.length === 0)
+            throw new Error ("No flows in cashflow");
+        try {   
+            return this.PV(cashflow,rate,cashflow.flows[0].date);
+        } catch (e) {
+            throw e;
+        }
     }
    
     
@@ -143,16 +175,7 @@ class Cashflow {
             throw new Error("No investment Flow found");
     }
     
-    print(){
-        const table = [];
-        for (let f of this.flows){
-            //console.log(` ${f.date.toLocaleDateString()} ${f.amount} ${f.description}`);
-            table.push([f.date.toLocaleDateString(), f.amount, f.description]);
-        }
-            console.table(table);
-    }
 }
-
 
 const Periods = {
     DAYS:1,
@@ -221,7 +244,6 @@ let flow2 = new Flow(new Date(), -100.00, "Capital");
 let flow3 = new Flow(addDays(new Date(),180), 35.00, "Capital");
 let flow4 = new Flow(addDays(new Date(),365), 35.00, "Capital");
 let flow5 = new Flow(addDays(new Date(),365+180), 35.00, "Capital");
-
 
 let cashflow = new Cashflow();
 
