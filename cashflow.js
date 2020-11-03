@@ -36,6 +36,14 @@ class Cashflow {
     addFlow(flow){
         this.flows.push(flow);
     }
+
+    popFlow(){
+        this.flows.pop();
+    }
+
+    removeFlow(i=0){
+        this.flows.splice(i,1);
+    }
     
     print(){
         const table = [];
@@ -49,7 +57,7 @@ class Cashflow {
 } 
 
 class Finance{
-
+    
     static discountAmount(amount,rate,periods){
         let dr = rate / 100;
         let discountFactor = 1 / (Math.pow(1 + dr, periods));
@@ -57,11 +65,30 @@ class Finance{
         return pvf;
     }
 
+
+    // Returns the discounted value of an amount at the specified
+    // rate during the specificed number of periods
+    static PV(periods, rate, amount) {
+
+        if ( typeof periods === "undefined" || periods === null)
+            throw new Error("No periods specified");
+        
+        if ( typeof rate === "undefined" || isNaN(rate) || rate === null)
+            throw new Error ("Rate not valid");
+        
+        if ( typeof amount === "undefined" || isNaN(amount) || amount === null)
+            throw new Error ("Amount not valid");
+
+        const discountFactor = 1 / Math.pow( 1 + rate, periods);
+
+        return amount * discountFactor;
+    }
+
     // Calculates present value of flows in the cashflow on a key date
     // Discount rate should be expressed yearly
     // Key date should be before all flow dates
     // TODO: esta funcion solo debería descontar un flujo?
-    static PV(cashflow, rate, keyDate) {
+    static discountFlows(cashflow, rate, keyDate) {
 
         if ( typeof rate === "undefined" || isNaN(rate) || rate === null)
             throw new Error ("No discount rate specified");
@@ -89,8 +116,8 @@ class Finance{
         let flows = cashflow.flows;
 
         let pv = flows.reduce( (acum, f) => {
-                    let periods = daysBetween(presentDate, f.date) / 365;
-                    let pvf = this.discountAmount(f.amount, rate, periods);
+                    const periods = daysBetween(presentDate, f.date) / 365;
+                    const pvf = this.PV(periods, rate, f.amount);
                     //console.log("PVi: ", pvf);
                     return acum + pvf;
                 },0);
@@ -101,14 +128,8 @@ class Finance{
     // Present date is assumed to be the date of firs flow
     // Discount rate should be expressed yearly
     static NPV(cashflow, rate){
-        if (typeof rate === "undefined" || isNaN(rate) || rate === null)
-            throw new Error ("No discount rate specified");
-        if ( typeof cashflow === "undefined" || cashflow === null)
-            throw new Error ("No flows specified");
-        if (cashflow.length === 0)
-            throw new Error ("No flows in cashflow");
         try {   
-            return this.PV(cashflow,rate,cashflow.flows[0].date);
+            return  this.discountFlows(cashflow,rate,cashflow.flows[0].date);
         } catch (e) {
             throw e;
         }
@@ -165,7 +186,7 @@ class Finance{
      
         return Math.fround(rate);
     }
-   
+  /* 
     validateFlows(){
         // Validate if any flow exists
         if (this.flows.length === 0) 
@@ -174,7 +195,7 @@ class Finance{
         if (this.flows[0].amount > 0) 
             throw new Error("No investment Flow found");
     }
-    
+    */
 }
 
 const Periods = {
