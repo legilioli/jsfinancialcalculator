@@ -137,34 +137,41 @@ class Finance{
    
     
     // Calculates internal return rate (IRR) for the cashflow.
-    // Flows can be non periodical. Newton Raphson iteration
-    // is used to calculate the result
-    IRR(initialGuess = 10){
+    // Flows can be non periodical.Year is are considered to be 365 days 
+    // Newton Raphson iteration is used to calculate the result
+    static IRR(cashflow, initialGuess = 0.10){
         
-        this.validateFlows();
-        if (! (this.flows.some( f => { return f.amount > 0 } ) &&
-               this.flows.some( f => { return f.amount < 0 })))
+        //this.validateFlows();
+        if (! (cashflow.flows.some( f => { return f.amount > 0 } ) &&
+               cashflow.flows.some( f => { return f.amount < 0 })))
             throw new 
                 Error("Cashflow must contain positive and negative flows");      
+        // Validate if any flow exists
+        if (cashflow.flows.length === 0) 
+            throw new Error("No flows in Cashflow");
+        // At least one flow amount must exist with amount < 0 
+        if (cashflow.flows[0].amount > 0) 
+            throw new Error("No investment Flow found");
 
         let rate = initialGuess;
-        const maxRelError = 0.000001/100;
+        const maxRelError = 0.00000001/100;
         const maxIterations = 10000;
-        let error = 1000000;
+        let error = Number.MAX_VALUE;
         let iterations = 0;
-        let presentDate = this.flows[0].date;
-        let cashflow = this;
+        let presentDate = cashflow.flows[0].date;
 
         let f = r => {
-            return cashflow.NPV(r);
+            
+            const pv =  this.NPV(cashflow, r);
+            return pv;
         }
         
         let fprime = r => {
-            let flows = cashflow.flows.slice(1,cashflow.length);
+            let flows = cashflow.flows.slice(1,cashflow.flows.length);
             return flows.reduce(
                 (acum,flow) => {
                     let period = daysBetween(flow.date, presentDate)/365;
-                    return -1*flow.amount*period*Math.pow((1+r/100),-period-1);
+                    return acum - 1*flow.amount*period*Math.pow(1+r,-period-1);
                 },0);
         }
 
@@ -177,9 +184,9 @@ class Finance{
         }
         console.timeEnd("IRR calculation");
         
-        console.log("Iterations",iterations);
-        console.log(`Relative Error: ${error*100}%`);
-        console.log("Rate: ",rate);
+        console.debug("Iterations",iterations);
+        console.debug(`Relative Error: ${(error*100).toFixed(15)}%`);
+        console.debug("Rate: ",rate);
 
         if (iterations === maxIterations)
             throw new Error("Could not determine IRR");
