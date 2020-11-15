@@ -4,6 +4,58 @@
 // TODO: documentation
 "use strict";
 
+class FlowsBuilder {
+    constructor(){
+        this.periodicity =
+            this.periodUnit = 
+            this.periods = 
+            this.amount = 
+            this.startDate = null;
+    }
+
+    of(periodUnit){
+        this.periodUnit = periodUnit;
+        return this;
+    }
+
+    startFrom(date){
+        this.startDate = date;
+        return this;
+    }
+
+    repeat(periods){
+        this.periods = periods;
+        return this;
+    }
+    
+    ofAmount(amount){
+        this.amount = amount;
+        return this;
+    }
+
+    days(){
+        this.periodicity = Periods.DAYS;
+        return this;
+    }
+
+    months(){
+        this.periodicity = Periods.MONTHS;
+        return this;
+    }
+
+    years(){
+        this.periodicity = Periods.YEARS;
+        return this;
+    };
+
+    build(){
+        return Flow.createFlows(this.periods, 
+                new Periodicity(this.periodUnit,this.periodicity),
+                this.amount, this.startDate);
+    }
+
+}
+
 class Flow{
 
     constructor(date = new Date(), amount = 0.0, description = ""){
@@ -12,12 +64,12 @@ class Flow{
         this.description = description;
     }
 
-    static createFlows(n, periodicity, monto, startDate = new Date()){
+    static createFlows(n, periodicity, amount, startDate = new Date()){
         let flows = [];
         for (let i = 0; i < n; i++){
             let date = new Date(startDate);
             date.setDate(date.getDate() + i * periodicity.periods*periodicity.toDays());
-            flows.push(new this(date, monto, `Test flow ${i}`));
+            flows.push(new this(date, amount, `Test flow ${i}`));
         }
         return flows; 
     }
@@ -57,11 +109,11 @@ class Cashflow {
 } 
 
 class Finance{
-    
+   
     static discountAmount(amount,rate,periods){
-        let dr = rate / 100;
-        let discountFactor = 1 / (Math.pow(1 + dr, periods));
-        let pvf = amount * discountFactor;
+        const dr = rate / 100;
+        const discountFactor = 1 / (Math.pow(1 + dr, periods));
+        const pvf = amount * discountFactor;
         return pvf;
     }
 
@@ -108,17 +160,16 @@ class Finance{
             throw new Error("Key date should be before all flow dates.");
 
         // Present date 
-        let presentDate = keyDate;
+        const presentDate = keyDate;
          
         // Present Value calculated as aggregation of discounted flows
         // until present date using passed discount rate
         // assuming it represents the investment payment at present date
-        let flows = cashflow.flows;
+        const flows = cashflow.flows;
 
-        let pv = flows.reduce( (acum, f) => {
+        const pv = flows.reduce( (acum, f) => {
                     const periods = daysBetween(presentDate, f.date) / 365;
                     const pvf = this.PV(periods, rate, f.amount);
-                    //console.log("PVi: ", pvf);
                     return acum + pvf;
                 },0);
         return pv;
@@ -127,7 +178,7 @@ class Finance{
     // Calculates net present value for a cashflow
     // Present date is assumed to be the date of firs flow
     // Discount rate should be expressed yearly
-    static NPV(cashflow, rate){
+    static XNPV(cashflow, rate){
         try {   
             return  this.discountFlows(cashflow,rate,cashflow.flows[0].date);
         } catch (e) {
@@ -139,7 +190,7 @@ class Finance{
     // Calculates internal return rate (IRR) for the cashflow.
     // Flows can be non periodical.Year is are considered to be 365 days 
     // Newton Raphson iteration is used to calculate the result
-    static IRR(cashflow, initialGuess = 0.10){
+    static XIRR(cashflow, initialGuess = 0.10){
         
         //this.validateFlows();
         if (! (cashflow.flows.some( f => { return f.amount > 0 } ) &&
@@ -158,11 +209,10 @@ class Finance{
         const maxIterations = 10000;
         let error = Number.MAX_VALUE;
         let iterations = 0;
-        let presentDate = cashflow.flows[0].date;
+        const presentDate = cashflow.flows[0].date;
 
         let f = r => {
-            
-            const pv =  this.NPV(cashflow, r);
+            const pv =  this.XNPV(cashflow, r);
             return pv;
         }
         
@@ -193,16 +243,6 @@ class Finance{
      
         return Math.fround(rate);
     }
-  /* 
-    validateFlows(){
-        // Validate if any flow exists
-        if (this.flows.length === 0) 
-            throw new Error("No flows in Cashflow");
-        // At least one flow amount must exist with amount < 0 
-        if (this.flows[0].amount > 0) 
-            throw new Error("No investment Flow found");
-    }
-    */
 }
 
 const Periods = {
@@ -257,7 +297,7 @@ class Periodicity {
 Object.freeze(Periods);
 
 function daysBetween(firstDate, secondDate){ 
-    const oneDay = 24 * 60 * 60 * 1000; // hours*minutes*seconds*milliseconds
+    const oneDay = 24 * 60 * 60 * 1000; 
     const diffDays = Math.round(Math.abs((firstDate - secondDate) / oneDay));
     return diffDays;
 }
@@ -268,17 +308,23 @@ function addDays(startDate,days){
     return newDate;
 }
 
-let flow2 = new Flow(new Date(), -100.00, "Capital");
-let flow3 = new Flow(addDays(new Date(),180), 35.00, "Capital");
-let flow4 = new Flow(addDays(new Date(),365), 35.00, "Capital");
-let flow5 = new Flow(addDays(new Date(),365+180), 35.00, "Capital");
 
-let cashflow = new Cashflow();
+/* Sample Usage */
 
-cashflow.addFlow(flow2);
-cashflow.addFlow(flow3);
-cashflow.addFlow(flow4);
-cashflow.addFlow(flow5);
-cashflow.print();
+/*
+const cashflow = new Cashflow();
+// investment flow
+cashflow.addFlow( new Flow(new Date(), -10000, "Disbursement"));
+// repayment flows
+new FlowsBuilder().startFrom(addDays(new Date(),30))
+    .repeat(12).of(1).months().ofAmount(1000).build()
+    .forEach(f => cashflow.addFlow(f));
+
+// IRR calculation
+Finance.XIRR(cashflow);
+
+// NPV calculationi using 15% discount rate
+Finance.XNPV(cashflow, 0.15);
+*/
 
 
