@@ -4,7 +4,7 @@
 // TODO: documentation
 "use strict";
 
-class FlowsBuilder {
+export class FlowsBuilder {
     constructor(){
         this.periodicity =
             this.periodUnit = 
@@ -56,7 +56,7 @@ class FlowsBuilder {
 
 }
 
-class Flow{
+export class Flow{
 
     constructor(date = new Date(), amount = 0.0, description = ""){
         this.date = date;
@@ -75,7 +75,7 @@ class Flow{
     }
 }
 
-class Cashflow {
+export class Cashflow {
 
     constructor(){
         this.flows = []
@@ -108,7 +108,7 @@ class Cashflow {
     
 } 
 
-class Finance{
+export class Finance{
    
     static discountAmount(amount,rate,periods){
         const dr = rate / 100;
@@ -296,13 +296,13 @@ class Periodicity {
 
 Object.freeze(Periods);
 
-function daysBetween(firstDate, secondDate){ 
+export function daysBetween(firstDate, secondDate){ 
     const oneDay = 24 * 60 * 60 * 1000; 
     const diffDays = Math.round(Math.abs((firstDate - secondDate) / oneDay));
     return diffDays;
 }
 
-function addDays(startDate,days){ 
+export function addDays(startDate,days){ 
     const newDate = new Date(startDate);
     newDate.setDate(newDate.getDate() + days);
     return newDate;
