@@ -7,10 +7,10 @@
 export class FlowsBuilder {
     constructor(){
         this.periodicity =
-            this.periodUnit = 
             this.periods = 
             this.amount = 
             this.startDate = null;
+            this.periodUnit = 1;
     }
 
     of(periodUnit){
