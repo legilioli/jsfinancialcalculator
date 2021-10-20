@@ -38,6 +38,11 @@ export class FlowsBuilder {
         return this;
     }
 
+    weeks(){
+        this.periodicity = Periods.WEEKS;
+        return this;
+    }
+
     months(){
         this.periodicity = Periods.MONTHS;
         return this;
@@ -245,7 +250,7 @@ export class Finance{
     }
 }
 
-const Periods = {
+export const Periods = {
     DAYS:1,
     WEEKS:2,
     MONTHS:3,
