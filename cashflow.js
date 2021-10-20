@@ -72,8 +72,11 @@ export class Flow{
     static createFlows(n, periodicity, amount, startDate = new Date()){
         let flows = [];
         for (let i = 0; i < n; i++){
-            let date = new Date(startDate);
-            date.setDate(date.getDate() + i * periodicity.periods*periodicity.toDays());
+            //let date = new Date(startDate);
+            //date.setDate(date.getDate() + i * periodicity.periods*periodicity.toDays());
+            let date = periodicity.nextDate(startDate);
+            startDate = date;
+            date = new Date(date.setHours(0,0,0,0));
             flows.push(new this(date, amount, `Test flow ${i}`));
         }
         return flows; 
@@ -278,6 +281,27 @@ class Periodicity {
     
     static years(n){
         return new this(n,Periods.YEARS);
+    }
+
+    nextDate(dateFrom){
+        let newDate = dateFrom;
+        switch(this.periodType){
+            case Periods.MONTHS:
+                newDate = new Date(dateFrom.setMonth(dateFrom.getMonth() + 1 * this.periods));
+                break;
+            case Periods.DAYS:
+                newDate = new Date(dateFrom.setDate(dateFrom.getDate() + 1 * this.periods));
+                break;
+            case Periods.YEARS:
+                newDate = new Date(dateFrom.setFullYear(dateFrom.getFullYear() + 1 * this.periods));
+                break;
+            case Periods.WEEKS:
+                newDate = new Date(dateFrom.setDate(dateFrom.getDate() + 7 * this.periods));
+                break;
+            default:
+                    throw new Error("unrecognized period type");
+        }
+        return newDate;
     }
 
     toDays(){
