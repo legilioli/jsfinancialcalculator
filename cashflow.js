@@ -8,9 +8,9 @@ export class FlowsBuilder {
     constructor(){
         this.periodicity =
             this.periods = 
-            this.amount = 
-            this.startDate = null;
-            this.periodUnit = 1;
+        this.amount = 
+        this.startDate = null;
+        this.periodUnit = 1;
     }
 
     of(periodUnit){
@@ -245,14 +245,14 @@ export class Finance{
     }
 }
 
-const Periods = {
+export const Periods = {
     DAYS:1,
     WEEKS:2,
     MONTHS:3,
     YEARS:4
 }
 
-class Periodicity {
+export class Periodicity {
 
     constructor(periods, periodType){
        this.periods = periods,
